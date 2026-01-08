@@ -1,9 +1,10 @@
+import { IncomingMessage, Server, ServerResponse } from 'http';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 
 import { env } from './config/environment.ts';
-import { IncomingMessage, Server, ServerResponse } from 'http';
+import { logger } from './utils/logger.ts';
 
 /* Main entrypoint */
 async function server(): Promise<
@@ -30,7 +31,7 @@ async function server(): Promise<
     );
 
     return app.listen(env.PORT, () => {
-      console.log(`🚀 🚀 Server up and running on port: ${env.PORT}`);
+      logger.info(`🚀 🚀 Server up and running on port: ${env.PORT}`);
     });
   } catch (err) {
     console.error(`Theres an error initializing the server!, ${err}`);

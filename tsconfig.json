@@ -25,7 +25,8 @@
     "paths": {
       "@config/*": ["config/*"],
       "@graphql/*": ["graphql/*"],
-      "@services/*": ["services/*"]
+      "@services/*": ["services/*"],
+      "@utils/*": ["utils/*"]
     }
   },
   "include": ["src/**/*"],
