@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "module": "nodenext",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "nodenext",
+    "baseUrl": "./src",
+    "paths": {
+      "@config/*": ["config/*"],
+      "@graphql/*": ["graphql/*"],
+      "@services/*": ["services/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

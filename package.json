@@ -1,0 +1,45 @@
+{
+  "name": "semantic-document-search",
+  "version": "1.0.0",
+  "description": "Sematic Document Search and Q&A System with PGVector",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node --experimental-transform-types --watch-path=./src src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "build": ""
+  },
+  "keywords": [
+    "pgvector",
+    "semantic-search",
+    "graphql",
+    "typescript",
+    "node"
+  ],
+  "author": "Marcos de Moura Silva",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
+    "@typescript-eslint/parser": "^8.52.0",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.52.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0"
+  }
+}
