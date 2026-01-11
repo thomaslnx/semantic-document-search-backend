@@ -1,25 +1,47 @@
-export interface Document {
-  id: string;
-  title: string;
-  filePath?: string | null;
-  fileType?: string | null;
-  content?: string | null;
-  metadata?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
+import { DocumentChunk } from './DocumentChunk.ts';
 
-export interface CreateDocumentInput {
-  title: string;
-  filePath?: string | null;
-  fileType?: string | null;
-  content?: string | null;
-  metadata?: string | null;
-}
+/**
+ * Document Entity
+ * Represents a document in the system
+ */
 
-export interface UpdateDocumentInput {
-  title: string;
+@Entity('documents')
+export class Document {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  title!: string;
+
+  @Column({ type: 'text', nullable: true, name: 'file_path' })
   filePath?: string | null;
+
+  @Column({ type: 'varchar', length: 50, nullable: true, name: 'file_type' })
+  fileType?: string | null;
+
+  @Column({ type: 'text', nullable: true })
   content?: string | null;
-  metadata?: string | null;
+
+  @Column({ type: 'jsonb', nullable: true, default: {} })
+  metadata?: Record<string, any> | null;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
+  updatedAt!: Date;
+
+  /* Relationship with document chunks */
+  @OneToMany(() => DocumentChunk, (chunk) => chunk.document, {
+    cascade: true,
+  })
+  chunks?: DocumentChunk[];
 }
