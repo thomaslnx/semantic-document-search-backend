@@ -1,0 +1,32 @@
+version: '3.8'
+
+name: semantic-document-search
+
+services:
+  # PostgreSQL with pgvector extension for development
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: postgres_pgvector
+    environment:
+      POSTGRES_USER:
+      POSTGRES_PASSWORD:
+      POSTGRES_DB:
+    ports:
+      - '54332:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - semantic-search-network
+
+volumes:
+  postgres_data:
+
+networks:
+  semantic-search-network:
+    driver: bridge
