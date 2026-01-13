@@ -16,7 +16,7 @@ interface DatabaseConfig {
 interface RedisConfig {
   host: string;
   port: number;
-  password?: string;
+  password: string;
 }
 
 interface OpenAIConfig {
