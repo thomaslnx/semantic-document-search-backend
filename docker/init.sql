@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 -- create documents table
 CREATE TABLE IF NOT EXISTS documents (
-  id UUID PRIMARY KEY DEFAULT gen_random_uui(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title VARCHAR(255) NOT NULL,
   file_path TEXT,
   file_type VARCHAR(255),

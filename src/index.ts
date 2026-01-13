@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import http from 'http';
 import express from 'express';
 import { ApolloServer } from '@apollo/server';
@@ -10,10 +11,15 @@ import helmet from 'helmet';
 import { env } from './config/environment.ts';
 import { logger } from './utils/logger.ts';
 import { typeDefs, documentResolver } from './graphql/document/index.ts';
+import { initializeDatabase, closeDatabase, AppDataSource } from './config/data-source.ts';
 
 /* Main entrypoint */
 async function server(): Promise<void> {
   try {
+    /* Initialize database connection */
+    logger.info('Initializing database connection...');
+    await initializeDatabase();
+
     const app = express();
     const resolvers = documentResolver;
 
@@ -25,6 +31,27 @@ async function server(): Promise<void> {
         contentSecurityPolicy: env.NODE_ENV === 'production' ? true : false,
       })
     );
+
+    /* Health check endpoint */
+    app.get('/health', async (req, res) => {
+      try {
+        // Check database connection
+        const isConnected = AppDataSource.isInitialized;
+        res.status(isConnected ? 200 : 503).json({
+          status: isConnected ? 'healthy' : 'unhealthy',
+          timestamp: new Date().toISOString(),
+          database: {
+            connected: isConnected,
+          },
+        });
+      } catch (error) {
+        logger.error('Health check failed', error);
+        res.status(503).json({
+          status: 'unhealthy',
+          error: 'Health check failed',
+        });
+      }
+    });
 
     /* Info endpoint */
     app.get('/info', (req, res) => {
@@ -78,6 +105,7 @@ async function server(): Promise<void> {
     logger.info(`🚀 Server up and running on port: ${env.PORT}`);
     logger.info(`📊 GraphQL endpoint: http://localhost:${env.PORT}/graphql`);
     logger.info(`ℹ️  API info: http://localhost:${env.PORT}/info`);
+    logger.info(`💊  Health info: http://localhost:${env.PORT}/health`);
 
     /* Graceful shutdown */
     process.on('SIGTERM', async () => {
