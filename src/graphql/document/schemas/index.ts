@@ -23,6 +23,7 @@ export const typeDefs = `#graphql
   input UpdateDocumentInput {
     title: String
     filePath: String
+    fileType: String
     content: String
     metadata: String
   }

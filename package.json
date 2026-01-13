@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node --experimental-transform-types --watch-path=./src src/index.ts",
+    "dev:dec": "tsx watch src/index.ts",
     "start": "node dist/index.js",
+    "build": "tsc",
     "typeorm": "typeorm-ts-node-esm",
     "migration:generate": "npm run typeorm -- migration:generate -d src/config/data-source.ts",
     "migration:run": "npm run typeorm --migration:run -d src/config/data-source.ts",
@@ -14,8 +16,7 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\"",
-    "build": ""
+    "format:check": "prettier --check \"src/**/*.ts\""
   },
   "keywords": [
     "pgvector",
@@ -38,6 +39,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.7.4",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.52.0"
   },

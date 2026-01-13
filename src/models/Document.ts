@@ -8,6 +8,22 @@ import {
 } from 'typeorm';
 import { DocumentChunk } from './DocumentChunk.ts';
 
+export interface CreateDocumentInput {
+  title: string;
+  filePath?: string;
+  fileType?: string;
+  content?: string;
+  metadata?: string;
+}
+
+export interface UpdateDocumentInput {
+  title?: string;
+  filePath?: string;
+  fileType?: string;
+  content?: string;
+  metadata?: string;
+}
+
 /**
  * Document Entity
  * Represents a document in the system
@@ -22,13 +38,13 @@ export class Document {
   title!: string;
 
   @Column({ type: 'text', nullable: true, name: 'file_path' })
-  filePath?: string | null;
+  filePath?: string | null | undefined;
 
   @Column({ type: 'varchar', length: 50, nullable: true, name: 'file_type' })
-  fileType?: string | null;
+  fileType?: string | null | undefined;
 
   @Column({ type: 'text', nullable: true })
-  content?: string | null;
+  content?: string | null | undefined;
 
   @Column({ type: 'jsonb', nullable: true, default: {} })
   metadata?: Record<string, any> | null;
