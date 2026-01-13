@@ -13,21 +13,37 @@ interface DatabaseConfig {
   isSupabase?: boolean;
 }
 
+interface RedisConfig {
+  host: string;
+  port: number;
+  password?: string;
+}
+
+interface OpenAIConfig {
+  apiKey: string;
+  model?: string;
+  embeddingModel?: string;
+}
+
+interface JWTConfig {
+  secret: string;
+  expiresIn: string;
+}
+
 interface EnvironmentConfig {
   NODE_ENV: string;
   PORT: number;
-  database: {
-    host: string;
-    port: number;
-    database: string;
-    username: string;
-    password: string;
-    ssl: boolean;
-    isSupabase: boolean;
-  };
+  database: DatabaseConfig;
   graphql: {
     path: string;
     playground: boolean;
+  };
+  redis: RedisConfig;
+  openai: OpenAIConfig;
+  jwt: JWTConfig;
+  upload: {
+    maxFileSize: number;
+    allowedMimeTypes: string[];
   };
 }
 
@@ -41,6 +57,11 @@ const loadEnvironment = (): EnvironmentConfig => {
 
   if (missingVars.length > 0) {
     throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+  }
+
+  /* Check for OpenAI API key */
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('⚠️  OPENAI_API_KEY not set. Embedding generation will fail.');
   }
 
   return {
@@ -57,10 +78,34 @@ const loadEnvironment = (): EnvironmentConfig => {
       isSupabase,
     },
 
+    redis: {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      password: process.env.REDIS_PASSWORD!,
+    },
+
+    openai: {
+      apiKey: process.env.OPENAI_API_KEY || '',
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      embeddingModel: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
+    },
+
+    jwt: {
+      secret: process.env.JWT_SECRET || 'change-me-in-production',
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    },
+
     graphql: {
       path: process.env.GRAPHQL_PATH || 'graphql',
       playground:
         process.env.GRAPHQL_PLAYGROUND === 'true' || process.env.NODE_ENV === 'development',
+    },
+
+    upload: {
+      maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10), // 10MB default
+      allowedMimeTypes: (
+        process.env.ALLOWED_MIME_TYPES || 'application/pdf,text/markdown,text/plain'
+      ).split(','),
     },
   };
 };
