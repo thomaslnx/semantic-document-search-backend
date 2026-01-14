@@ -63,7 +63,7 @@ export class DocumentChunk {
       },
     },
   })
-  Embeddings?: number[] | null;
+  embedding?: number[] | null;
 
   @Column({ type: 'jsonb', nullable: true, default: {} })
   metadata?: Record<string, any> | null;
