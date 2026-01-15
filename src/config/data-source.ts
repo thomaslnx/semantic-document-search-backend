@@ -32,7 +32,7 @@ export const dataSourceOptions: DataSourceOptions = {
    * Synchronize: true in development, false in production
    * In production, use migrations instead
    */
-  synchronize: env.NODE_ENV === 'development',
+  synchronize: false,
 
   /* Logging */
   logging: env.NODE_ENV === 'development',

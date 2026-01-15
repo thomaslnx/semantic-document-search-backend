@@ -14,6 +14,8 @@ import { documentProcessingService } from '../../../services/DocumentProcessingS
 import { env } from '../../../config/environment.ts';
 import { Readable } from 'node:stream';
 import { FileUpload, GraphQLUpload } from 'graphql-upload-ts';
+import { searchService, SearchResult } from '../../../services/SearchService.ts';
+import { qaService, QAAnswer } from '../../../services/QAService.ts';
 
 /* Helper: stream -> buffer */
 async function streamToBuffer(stream: Readable): Promise<Buffer> {
@@ -93,6 +95,61 @@ export const documentResolver = {
       } catch (err) {
         logger.error('Error fetching document:', { id, err });
         throw new Error('Failed to fetch document');
+      }
+    },
+
+    async search(
+      _: unknown,
+      {
+        input,
+      }: {
+        input: {
+          question: string;
+          limit: number;
+          threshold: number;
+          documentId: string;
+          hybrid?: boolean;
+        };
+      }
+    ): Promise<SearchResult[]> {
+      try {
+        const { question, limit, threshold, documentId, hybrid = false } = input;
+
+        if (hybrid) {
+          return await searchService.hybridSearch(question, {
+            limit,
+            threshold,
+            documentId,
+          });
+        }
+
+        return await searchService.search(question, {
+          limit,
+          threshold,
+          documentId,
+        });
+      } catch (error) {
+        logger.error('Error in search:', error);
+        throw new Error('Search failed', { cause: error });
+      }
+    },
+
+    /**
+     * Answer question using RAG
+     */
+    async answerQuestion(
+      _: unknown,
+      { input }: { input: { question: string; maxSources: number; documentId: string } }
+    ): Promise<QAAnswer> {
+      try {
+        const { question, maxSources, documentId } = input;
+        return await qaService.answerQuestion(question, {
+          maxSources,
+          documentId,
+        });
+      } catch (error) {
+        logger.error('Error answering question:', error);
+        throw new Error('Failed to answer question');
       }
     },
   },

@@ -91,9 +91,9 @@ const loadEnvironment = (): EnvironmentConfig => {
     throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
   }
 
-  /* Check for OpenAI API key */
-  if (!process.env.OPENAI_API_KEY) {
-    console.warn('⚠️  OPENAI_API_KEY not set. Embedding generation will fail.');
+  /* Check for HuggingFace API key */
+  if (!process.env.HF_API_KEY) {
+    console.warn('⚠️  HF_API_KEY not set. Embedding generation will fail.');
   }
 
   return {

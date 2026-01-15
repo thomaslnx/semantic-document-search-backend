@@ -44,24 +44,8 @@ export class DocumentChunk {
    * - For vector operations: use raw SQL queries
    */
   @Column({
-    type: 'text',
+    type: 'vector',
     nullable: true,
-    /* We'll use a transform to handle vector type */
-    transformer: {
-      to: (value: number[] | null) => {
-        if (!value) return null;
-        /* Convert array to PostgreSQL vector format: [1,2,3] */
-        return `[${value.join(',')}]`;
-      },
-      from: (value: string | null) => {
-        if (!value) return null;
-        /* Parse PostgreSQL vector format: [1,2,3] -> [1,2,3] */
-        return value
-          .replace(/[\[\]]/g, '')
-          .split(',')
-          .map(Number);
-      },
-    },
   })
   embedding?: number[] | null;
 
