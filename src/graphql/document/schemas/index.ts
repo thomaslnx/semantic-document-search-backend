@@ -1,4 +1,5 @@
 export const typeDefs = `#graphql
+  scalar Upload
   scalar DateTime
 
   type Document {
@@ -10,6 +11,34 @@ export const typeDefs = `#graphql
     metadata: String
     createdAt: DateTime!
     updatedAt: DateTime!
+  }
+
+  type DocumentChunk {
+    id: ID!
+    documentId: ID!
+    chunkText: String!
+    chunkIndex: Int!
+    metadata: String
+    createdAt: DateTime!
+  }
+
+  type SearchResult {
+    chunk: DocumentChunk!
+    document: Document!
+    similarity: Float!
+    score: Float!
+  }
+
+  type QASource {
+    documentId: ID!
+    documentTitle: String!
+    chunkText: String!
+    similarity: Float!
+  }
+
+  type QAAnswer {
+    answer: String!
+    sources: [QASource!]!
   }
 
   input CreateDocumentInput {
@@ -28,12 +57,38 @@ export const typeDefs = `#graphql
     metadata: String
   }
 
+  input SearchInput {
+    query: String!
+    limit: Int
+    threshold: Float
+    documentId: ID
+    hybrid: Boolean
+  }
+
+  input QAInput {
+    question: String!
+    maxSources: Int
+    documentId: ID
+  }
+
+  type File {
+    filename: String!
+    mimetype: String!
+    encoding: String!
+  }
+
   type Query {
     """ list all documents """
     getDocuments: [Document!]!
 
     """ Retrieve one document based on its Id """
     getDocument(id: ID!): Document
+
+    """ Perform semantic search """
+    search(input: SearchInput!): [SearchResult!]!
+
+    """ Answer a question using RAG """
+    answerQuestion(input: QAInput!): QAAnswer!
   }
 
   type Mutation {
@@ -45,5 +100,11 @@ export const typeDefs = `#graphql
 
     """ Delete a document """
     deleteDocument(id: ID!): Boolean!
+
+    """ Perform semantic search """
+    search(input: SearchInput!): [SearchResult!]!
+
+    """ Upload and process a document file """
+    uploadDocument(file: Upload!): Document!
   }
 `;

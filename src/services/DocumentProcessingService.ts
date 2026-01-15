@@ -2,7 +2,7 @@ import { AppDataSource } from '../config/data-source.ts';
 import { Document } from '../models/Document.ts';
 import { DocumentChunk } from '../models/DocumentChunk.ts';
 import { textExtractionService } from './TextExtractionService.ts';
-import { openAIService } from './OpenAIService.ts';
+import { openAIService } from './HuggingFaceAIService.ts';
 import { logger } from '../utils/logger.ts';
 import { redisClient } from '../config/redis.ts';
 
@@ -60,11 +60,36 @@ export class DocumentProcessingService {
 
         /* Create chunk entities */
         const chunkEntities = batch.map((chunkText, index) => {
+          const rawEmbedding = embeddings[index];
+          let embedding: number[] | null = null;
+
+          if (rawEmbedding === null || rawEmbedding === undefined) {
+            throw new Error(`No embedding returned for chunk at index ${index}`);
+          }
+
+          if (Array.isArray(rawEmbedding)) {
+            /* Check if it's a nested array (number[][]) */
+            if (rawEmbedding.length > 0 && Array.isArray(rawEmbedding[0])) {
+              /* Flatten: [[1,2], [3,4]] -> [1,2,3,4] */
+              embedding = (rawEmbedding as number[][]).flat();
+            } else {
+              /* Already flat: [1,2,3] */
+              embedding = rawEmbedding as number[];
+            }
+          } else if (typeof rawEmbedding === 'number') {
+            /* Single number -> wrap in array */
+            embedding = [rawEmbedding];
+          }
+
+          if (!embedding || embedding.length === 0) {
+            throw new Error(`Invalid embedding format at index ${index}`);
+          }
+
           const chunk = chunkRepository.create({
-            documentId: savedDocument.id,
+            document: savedDocument,
             chunkText,
             chunkIndex: i + index,
-            embedding: embeddings[index]!,
+            embedding,
             metadata: {
               chunkLength: chunkText.length,
             },

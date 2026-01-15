@@ -1,6 +1,6 @@
 import { AppDataSource } from '../config/data-source.ts';
 import { DocumentChunk } from '../models/DocumentChunk.ts';
-import { openAIService } from './OpenAIService.ts';
+import { openAIService } from './HuggingFaceAIService.ts';
 import { redisClient } from '../config/redis.ts';
 import { logger } from '../utils/logger.ts';
 import { createHash } from 'crypto';
@@ -80,7 +80,7 @@ export class SearchService {
    * Uses raw SQL because TypeORM doesn't support vector operations
    */
   async #vectorSimilaritySearch(
-    queryEmbedding: number[],
+    queryEmbedding: (number | number[] | number[][])[],
     limit: number,
     threshold: number,
     documentId?: string
