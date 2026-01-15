@@ -1,9 +1,9 @@
 import { searchService, SearchResult } from './SearchService.ts';
-import { openAIService } from './OpenAIService.ts';
+import { openAIService } from './HuggingFaceAIService.ts';
 import { logger } from '../utils/logger.ts';
 
 export interface QAAnswer {
-  answer: string;
+  answer: IteratorResult<any, any> | string;
   sources: Array<{
     documentId: string;
     documentTitle: string;

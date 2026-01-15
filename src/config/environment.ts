@@ -25,6 +25,37 @@ interface OpenAIConfig {
   embeddingModel?: string;
 }
 
+export interface HuggingfaceConfig {
+  apiKey: string;
+  model?: string;
+  provider?:
+    | 'baseten'
+    | 'black-forest-labs'
+    | 'cerebras'
+    | 'clarifai'
+    | 'cohere'
+    | 'fal-ai'
+    | 'featherless-ai'
+    | 'fireworks-ai'
+    | 'groq'
+    | 'hf-inference'
+    | 'hyperbolic'
+    | 'nebius'
+    | 'novita'
+    | 'nscale'
+    | 'openai'
+    | 'ovhcloud'
+    | 'publicai'
+    | 'replicate'
+    | 'sambanova'
+    | 'scaleway'
+    | 'together'
+    | 'wavespeed'
+    | 'zai-org'
+    | 'auto';
+  completionModel?: string;
+}
+
 interface JWTConfig {
   secret: string;
   expiresIn: string;
@@ -40,6 +71,7 @@ interface EnvironmentConfig {
   };
   redis: RedisConfig;
   openai: OpenAIConfig;
+  huggingface: HuggingfaceConfig;
   jwt: JWTConfig;
   upload: {
     maxFileSize: number;
@@ -88,6 +120,13 @@ const loadEnvironment = (): EnvironmentConfig => {
       apiKey: process.env.OPENAI_API_KEY || '',
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       embeddingModel: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
+    },
+
+    huggingface: {
+      apiKey: process.env.HF_API_KEY || '',
+      model: process.env.HF_MODEL || '',
+      provider: 'hf-inference',
+      completionModel: process.env.HF_COMPLETION_MODEL || '',
     },
 
     jwt: {

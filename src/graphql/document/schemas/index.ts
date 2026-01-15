@@ -1,4 +1,5 @@
 export const typeDefs = `#graphql
+  scalar Upload
   scalar DateTime
 
   type Document {
@@ -68,6 +69,12 @@ export const typeDefs = `#graphql
     question: String!
     maxSources: Int
     documentId: ID
+  }
+
+  type File {
+    filename: String!
+    mimetype: String!
+    encoding: String!
   }
 
   type Query {
