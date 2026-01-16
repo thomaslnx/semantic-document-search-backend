@@ -14,6 +14,7 @@ import { env } from './config/environment.ts';
 import { logger } from './utils/logger.ts';
 import { typeDefs, documentResolver } from './graphql/document/index.ts';
 import { initializeDatabase, closeDatabase, AppDataSource } from './config/data-source.ts';
+import { IndexOptimizer } from './utils/index-optmizer.ts';
 
 /* Main entrypoint */
 async function server(): Promise<void> {
@@ -60,6 +61,30 @@ async function server(): Promise<void> {
         res.status(503).json({
           status: 'unhealthy',
           error: 'Health check failed',
+        });
+      }
+    });
+
+    /* Index Health endpoint */
+    app.get('/health/index', async (req, res) => {
+      try {
+        const stats = await IndexOptimizer.getIndexStats();
+        const needsOptimization = await IndexOptimizer.needsOptimization();
+
+        res.json({
+          status: 'ok',
+          index: {
+            rowCount: stats.rowCount,
+            currentLists: stats.currentLists,
+            recommendedLists: stats.recommendedLists,
+            indexSize: stats.indexSize,
+            needsOptimization,
+          },
+        });
+      } catch (err) {
+        res.status(500).json({
+          status: 'error',
+          message: err instanceof Error ? err.message : 'Unknown error',
         });
       }
     });

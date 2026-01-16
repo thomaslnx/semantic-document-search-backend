@@ -50,7 +50,13 @@ export const dataSourceOptions: DataSourceOptions = {
 };
 
 /* Create and export DataSource instance */
-export const AppDataSource = new DataSource(dataSourceOptions);
+const AppDataSource = new DataSource(dataSourceOptions);
+
+/* Export as default for TypeORM CLI migrations */
+export default AppDataSource;
+
+/* Export as named export for application code */
+export { AppDataSource };
 
 /* Initialize database connection */
 export async function initializeDatabase(): Promise<void> {
