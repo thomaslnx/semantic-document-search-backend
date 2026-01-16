@@ -58,7 +58,7 @@ export const typeDefs = `#graphql
   }
 
   input SearchInput {
-    query: String!
+    question: String!
     limit: Int
     threshold: Float
     documentId: ID

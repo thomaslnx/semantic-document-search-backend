@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS document_chunks (
   document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
   chunk_text TEXT NOT NULL,
   chunk_index INTEGER NOT NULL,
-  embedding vector(1536), -- define according with model will be used
+  embedding vector(1024), -- define according with model will be used
   metadata JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP DEFAULT NOW(),
   CONSTRAINT unique_document_chunk UNIQUE (document_id, chunk_index)

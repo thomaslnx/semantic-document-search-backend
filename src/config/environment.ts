@@ -70,7 +70,6 @@ interface EnvironmentConfig {
     playground: boolean;
   };
   redis: RedisConfig;
-  openai: OpenAIConfig;
   huggingface: HuggingfaceConfig;
   jwt: JWTConfig;
   upload: {
@@ -91,9 +90,9 @@ const loadEnvironment = (): EnvironmentConfig => {
     throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
   }
 
-  /* Check for OpenAI API key */
-  if (!process.env.OPENAI_API_KEY) {
-    console.warn('⚠️  OPENAI_API_KEY not set. Embedding generation will fail.');
+  /* Check for HuggingFace API key */
+  if (!process.env.HF_API_KEY) {
+    console.warn('⚠️  HF_API_KEY not set. Embedding generation will fail.');
   }
 
   return {
@@ -114,12 +113,6 @@ const loadEnvironment = (): EnvironmentConfig => {
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379', 10),
       password: process.env.REDIS_PASSWORD!,
-    },
-
-    openai: {
-      apiKey: process.env.OPENAI_API_KEY || '',
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      embeddingModel: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
     },
 
     huggingface: {

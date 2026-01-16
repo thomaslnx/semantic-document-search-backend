@@ -54,7 +54,7 @@ export class OpenAIService {
 
   /**
    * Generate embeddings for text
-   * Embedding vector (1536 dimensions for text-embedding-3-small)
+   * Embedding vector (1024 dimensions for intfloat/multilingual-e5-large)
    */
   async generateEmbedding(text: string): Promise<(number | number[] | number[][])[]> {
     try {

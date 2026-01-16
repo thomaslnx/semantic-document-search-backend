@@ -157,11 +157,11 @@ export class SearchService {
    * Hybrid search (vector + full-text)
    * Combines vector similarity with PostgreSQL full-text search
    */
-  async hybridSearch(query: string, options: SearchOptions = {}): Promise<SearchResult[]> {
+  async hybridSearch(question: string, options: SearchOptions = {}): Promise<SearchResult[]> {
     const { limit = 10, threshold = 0.7, documentId, useCache = true } = options;
 
     try {
-      const cacheKey = this.#getCacheKey(query, { ...options, hybrid: true });
+      const cacheKey = this.#getCacheKey(question, { ...options, hybrid: true });
 
       if (useCache) {
         const cached = await redisClient.get<SearchResult[]>(cacheKey);
@@ -170,8 +170,8 @@ export class SearchService {
         }
       }
 
-      // Generate query embedding
-      const queryEmbedding = await openAIService.generateEmbedding(query);
+      /* Generate query embedding */
+      const queryEmbedding = await openAIService.generateEmbedding(question);
 
       const queryRunner = AppDataSource.createQueryRunner();
 
@@ -180,7 +180,7 @@ export class SearchService {
 
         const vectorString = `[${queryEmbedding.join(',')}]`;
 
-        // Build hybrid search query
+        /* Build hybrid search query */
         let sql = `
           SELECT 
             dc.id,
@@ -201,7 +201,7 @@ export class SearchService {
           AND to_tsvector('english', dc.chunk_text) @@ plainto_tsquery('english', $2)
         `;
 
-        const params: any[] = [vectorString, query];
+        const params: any[] = [vectorString, question];
 
         if (documentId) {
           sql += ` AND dc.document_id = $${params.length + 1}`;
@@ -253,8 +253,8 @@ export class SearchService {
   /**
    * Generate cache key for search query
    */
-  #getCacheKey(query: string, options: SearchOptions): string {
-    const keyData = JSON.stringify({ query, ...options });
+  #getCacheKey(question: string, options: SearchOptions): string {
+    const keyData = JSON.stringify({ question, ...options });
     const hash = createHash('md5').update(keyData).digest('hex');
     return `search:${hash}`;
   }
