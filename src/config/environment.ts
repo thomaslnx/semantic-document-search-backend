@@ -54,6 +54,7 @@ export interface HuggingfaceConfig {
     | 'zai-org'
     | 'auto';
   completionModel?: string;
+  vectorDimensions: number;
 }
 
 interface JWTConfig {
@@ -120,6 +121,7 @@ const loadEnvironment = (): EnvironmentConfig => {
       model: process.env.HF_MODEL || '',
       provider: 'hf-inference',
       completionModel: process.env.HF_COMPLETION_MODEL || '',
+      vectorDimensions: parseInt(process.env.VECTOR_DIMENSIONS!, 10) || 1024,
     },
 
     jwt: {
