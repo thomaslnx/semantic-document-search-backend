@@ -9,6 +9,8 @@ import { logger } from '../utils/logger.ts';
 class RedisClient {
   #client: RedisClientType | null = null;
   #isConnected: boolean = false;
+  #connectionAttempts: number = 0;
+  #maxConnectionAttempts: number = 3;
 
   /* Initialize Redis connection */
   async connect(): Promise<void> {
@@ -17,6 +19,13 @@ class RedisClient {
         socket: {
           host: env.redis.host,
           port: env.redis.port,
+          reconnectStrategy: (retries) => {
+            if (retries > this.#maxConnectionAttempts) {
+              logger.warn('Max Redis reconnection attempts reached. Continuing without cache.');
+              return false; /* Stop trying to reconnect */
+            }
+            return Math.min(retries * 100, 3000); /* Exponential backoff, max 3s */
+          },
         },
         password: env.redis.password,
       });
@@ -28,11 +37,13 @@ class RedisClient {
 
       this.#client.on('connect', () => {
         logger.info('Redis Client connecting...');
+        this.#connectionAttempts = 0;
       });
 
       this.#client.on('ready', () => {
         logger.info('✅ Redis Client Connected');
         this.#isConnected = true;
+        this.#connectionAttempts = 0;
       });
 
       this.#client.on('end', () => {
@@ -42,11 +53,24 @@ class RedisClient {
 
       await this.#client.connect();
     } catch (err) {
-      logger.error('Failed to connect to the Redis: ', err);
+      this.#connectionAttempts++;
+      const error = err instanceof Error ? err : new Error(String(err));
+
+      logger.error('Failed to connect to the Redis: ', {
+        error: error.message,
+        attempt: this.#connectionAttempts,
+        maxAttempts: this.#maxConnectionAttempts,
+      });
+
       this.#isConnected = false;
 
-      if (env.NODE_ENV === 'production') {
-        throw err;
+      if (
+        env.NODE_ENV === 'production' &&
+        this.#connectionAttempts >= this.#maxConnectionAttempts
+      ) {
+        logger.error(
+          'Redis connection failed after max attempts. Application will continue without cache.'
+        );
       }
     }
   }
@@ -64,6 +88,7 @@ class RedisClient {
   /* Get value from cache */
   async get<T>(key: string): Promise<T | null> {
     if (!this.isReady() || !this.#client) {
+      logger.debug(`Cache miss (Redis not available): ${key}`);
       return null;
     }
 
@@ -76,7 +101,8 @@ class RedisClient {
 
       return JSON.parse(value) as T;
     } catch (err) {
-      logger.error(`Error getting cache key ${key}: `, err);
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error(`Error getting cache key ${key}: `, error.message);
       return null;
     }
   }
@@ -84,6 +110,7 @@ class RedisClient {
   /* Set value in cache */
   async set(key: string, value: any, expirationSeconds?: number): Promise<boolean> {
     if (!this.isReady() || !this.#client) {
+      logger.debug(`Cache set skipped (Redis not available): ${key}`);
       return false;
     }
 
@@ -98,7 +125,8 @@ class RedisClient {
 
       return true;
     } catch (err) {
-      logger.error(`Error setting cache key ${key}: `, err);
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error(`Error setting cache key ${key}: `, error.message);
       return false;
     }
   }
@@ -106,6 +134,7 @@ class RedisClient {
   /* Delete key from cache */
   async del(key: string): Promise<boolean> {
     if (!this.isReady() || !this.#client) {
+      logger.debug(`Cache delete skipped (Redis not available): ${key}`);
       return false;
     }
 
@@ -113,7 +142,8 @@ class RedisClient {
       await this.#client.del(key);
       return true;
     } catch (err) {
-      logger.error(`ERror deleting cache key ${key}: `, err);
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error(`ERror deleting cache key ${key}: `, error.message);
       return false;
     }
   }
@@ -121,6 +151,7 @@ class RedisClient {
   /* Delete keys matching pattern */
   async delPattern(pattern: string): Promise<number> {
     if (!this.isReady() || !this.#client) {
+      logger.debug(`Cache pattern delete skipped (Redis not available): ${pattern}`);
       return 0;
     }
 
@@ -133,7 +164,8 @@ class RedisClient {
 
       return await this.#client.del(keys);
     } catch (err) {
-      logger.error(`Error deleting cache pattern ${pattern}: `, err);
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error(`Error deleting cache pattern ${pattern}: `, error.message);
       return 0;
     }
   }
@@ -146,7 +178,8 @@ class RedisClient {
         this.#isConnected = false;
         logger.info('Redis connection closed');
       } catch (err) {
-        logger.info('Error closing Redis connection: ', err);
+        const error = err instanceof Error ? err : new Error(String(err));
+        logger.info('Error closing Redis connection: ', error.message);
       }
     }
   }

@@ -17,6 +17,16 @@ import { FileUpload, GraphQLUpload } from 'graphql-upload-ts';
 import { searchService, SearchResult } from '../../../services/SearchService.ts';
 import { qaService, QAAnswer } from '../../../services/QAService.ts';
 
+import {
+  DocumentNotFoundError,
+  UnsupportedFileTypeError,
+  FileTooLargeError,
+  ValidationError,
+  InvalidSearchQueryError,
+} from '../../../errors/DomainErrors.ts';
+import { logError } from '../../../utils/errorHandler.ts';
+import { AppError } from '../../../errors/AppError.ts';
+
 /* Helper: stream -> buffer */
 async function streamToBuffer(stream: Readable): Promise<Buffer> {
   const chunks: Buffer[] = [];
@@ -64,13 +74,23 @@ export const documentResolver = {
           updatedAt: doc.updatedAt,
         }));
       } catch (err) {
-        logger.error('Error fetching', { err });
-        throw new Error('Failed to fetch documents');
+        logError(err instanceof Error ? err : new Error(String(err)), {
+          operation: 'getDocuments',
+        });
+        throw new Error('Failed to retrieve documents. Please try again later.');
       }
     },
 
     /* Get a single document by id */
     async getDocument(_: unknown, { id }: { id: string }): Promise<DocumentType | null> {
+      if (!id || typeof id !== 'string' || id.trim().length === 0) {
+        throw new ValidationError(
+          'Document ID is required and must be a non-empty string',
+          'id',
+          id
+        );
+      }
+
       try {
         const documentRepository = AppDataSource.getRepository(Document);
         const document = await documentRepository.findOne({
@@ -93,8 +113,11 @@ export const documentResolver = {
           updatedAt: document.updatedAt,
         };
       } catch (err) {
-        logger.error('Error fetching document:', { id, err });
-        throw new Error('Failed to fetch document');
+        logError(err instanceof Error ? err : new Error(String(err)), {
+          operation: 'getDocument',
+          documentId: id,
+        });
+        throw new Error('Failed to retrieve document. Please try again later.');
       }
     },
 
@@ -112,9 +135,28 @@ export const documentResolver = {
         };
       }
     ): Promise<SearchResult[]> {
-      try {
-        const { question, limit, threshold, documentId, hybrid = false } = input;
+      if (!input) {
+        throw new ValidationError('Search input is required');
+      }
+      const { question, limit, threshold, documentId, hybrid = false } = input;
 
+      if (!question || question.trim().length === 0) {
+        throw new InvalidSearchQueryError(question);
+      }
+
+      if (limit !== undefined && (limit < 1 || limit > 100)) {
+        throw new ValidationError('Search limit must be between 1 and 100', 'limit', limit);
+      }
+
+      if (threshold !== undefined && (threshold < 0 || threshold > 1)) {
+        throw new ValidationError(
+          'Similarity threshold must be between 0 and 1',
+          'threshold',
+          threshold
+        );
+      }
+
+      try {
         if (hybrid) {
           return await searchService.hybridSearch(question, {
             limit,
@@ -128,9 +170,16 @@ export const documentResolver = {
           threshold,
           documentId,
         });
-      } catch (error) {
-        logger.error('Error in search:', error);
-        throw new Error('Search failed', { cause: error });
+      } catch (err) {
+        if (err instanceof AppError) {
+          throw err;
+        }
+
+        logError(err instanceof Error ? err : new Error(String(err)), {
+          operation: 'search',
+          input,
+        });
+        throw new Error('Search operation failed. Please try again later.');
       }
     },
 
@@ -141,8 +190,25 @@ export const documentResolver = {
       _: unknown,
       { input }: { input: { question: string; maxSources: number; documentId: string } }
     ): Promise<QAAnswer> {
+      if (!input) {
+        throw new ValidationError('Q&A input is required');
+      }
+
+      const { question, maxSources, documentId } = input;
+
+      if (!question || question.trim().length === 0) {
+        throw new ValidationError('Question cannot be empty', 'question', question);
+      }
+
+      if (maxSources !== undefined && (maxSources < 1 || maxSources > 20)) {
+        throw new ValidationError('Max sources must be between 1 and 20', 'maxSources', maxSources);
+      }
+
+      if (!documentId || documentId.trim().length === 0) {
+        throw new ValidationError('Document ID is required', 'documentId', documentId);
+      }
+
       try {
-        const { question, maxSources, documentId } = input;
         return await qaService.answerQuestion(question, {
           maxSources,
           documentId,
@@ -264,19 +330,28 @@ export const documentResolver = {
 
     /* Delete a document */
     async deleteDocument(_: unknown, { id }: { id: string }): Promise<boolean> {
-      try {
-        const documentRepository = AppDataSource.getRepository(Document);
-        const result = await documentRepository.delete(id);
+      if (!id || typeof id !== 'string' || id.trim().length === 0) {
+        throw new ValidationError(
+          'Document ID is required and must be a non-empty string',
+          'id',
+          id
+        );
+      }
 
-        const deleted = (result.affected ?? 0) > 0;
-        if (deleted) {
-          logger.info('Document deleted', { id });
+      try {
+        const result = await documentProcessingService.deleteDocument(id);
+
+        return result;
+      } catch (err) {
+        if (err instanceof AppError) {
+          throw err;
         }
 
-        return deleted;
-      } catch (error) {
-        logger.error('Error deleting document:', { id, error });
-        throw new Error('Failed to delete document');
+        logError(err instanceof Error ? err : new Error(String(err)), {
+          operation: 'deleteDocument',
+          documentId: id,
+        });
+        throw new Error('Failed to delete document. Please try again later.');
       }
     },
 
@@ -288,7 +363,7 @@ export const documentResolver = {
       try {
         /* Validate upload object structure */
         if (!file) {
-          throw new Error('No file provided');
+          throw new ValidationError('File is required for upload');
         }
 
         const upload = await file;
@@ -298,10 +373,10 @@ export const documentResolver = {
 
         /* Validate required properties */
         if (!createReadStream) {
-          throw new Error('File stream not available');
+          throw new ValidationError('File stream is not available');
         }
-        if (!filename) {
-          throw new Error('File name not available');
+        if (!filename || filename.trim().length === 0) {
+          throw new ValidationError('File name is required');
         }
         if (!mimetype) {
           throw new Error(
@@ -311,9 +386,7 @@ export const documentResolver = {
 
         /* MIME/type validation */
         if (!env.upload.allowedMimeTypes.includes(mimetype)) {
-          throw new Error(
-            `File type ${mimetype} not allowed. Allowed: ${env.upload.allowedMimeTypes.join(', ')}`
-          );
+          throw new UnsupportedFileTypeError(mimetype, env.upload.allowedMimeTypes);
         }
 
         /* Stream -> buffer (for processing service) */
@@ -321,9 +394,7 @@ export const documentResolver = {
 
         /* Size validation */
         if (buffer.length > env.upload.maxFileSize) {
-          throw new Error(
-            `File too large (${buffer.length} bytes). Max: ${env.upload.maxFileSize} bytes`
-          );
+          throw new FileTooLargeError(buffer.length, env.upload.maxFileSize);
         }
 
         /* Process document (extract text, chunk, embed, save) */
@@ -343,11 +414,15 @@ export const documentResolver = {
           createdAt: savedDocument.createdAt,
           updatedAt: savedDocument.updatedAt,
         };
-      } catch (error) {
-        logger.error('Error uploading document:', error);
-        throw new Error(
-          `Failed to upload document: ${error instanceof Error ? error.message : 'Unknown error'}`
-        );
+      } catch (err) {
+        if (err instanceof AppError) {
+          throw err;
+        }
+
+        logError(err instanceof Error ? err : new Error(String(err)), {
+          operation: 'uploadDocument',
+        });
+        throw new Error('Failed to upload document. Please try again later.');
       }
     },
   },

@@ -2,6 +2,9 @@ import { InferenceClient } from '@huggingface/inference';
 import { env } from '../config/environment.ts';
 import { logger } from '../utils/logger.ts';
 
+import { HuggingFaceAPIError, EmbeddingGenerationError } from '../errors/DomainErrors.ts';
+import { handleExternalAPIError, logError } from '../utils/errorHandler.ts';
+
 /**
  * HuggingFace Embeddings Service
  * Handles embedding generation and text completion
@@ -43,7 +46,9 @@ export class OpenAIService {
 
   constructor() {
     if (!env.huggingface.apiKey) {
-      throw new Error('HF_API_KEY environment variable is required');
+      throw new HuggingFaceAPIError(
+        'HF_API_KEY environment variable is required. Please configure your Hugging Face API key.'
+      );
     }
 
     this.#client = new InferenceClient(env.huggingface.apiKey);
@@ -57,6 +62,10 @@ export class OpenAIService {
    * Embedding vector (1024 dimensions for intfloat/multilingual-e5-large)
    */
   async generateEmbedding(text: string): Promise<(number | number[] | number[][])[]> {
+    if (!text || text.trim().length === 0) {
+      throw new EmbeddingGenerationError('Text input cannot be empty');
+    }
+
     try {
       const response = await this.#client.featureExtraction({
         model: this.#model,
@@ -66,14 +75,23 @@ export class OpenAIService {
 
       const embedding = response;
       if (!embedding) {
-        throw new Error('No embedding returned from OpenAI');
+        throw new EmbeddingGenerationError('No embedding returned from Hugging Face API');
       }
 
       return embedding;
-    } catch (error) {
-      logger.error('Error generating embedding:', error);
-      throw new Error(
-        `Failed to generate embedding: ${error instanceof Error ? error.message : 'Unknown error'}`
+    } catch (err) {
+      const appError = handleExternalAPIError('Hugging Face', err, 'generateEmbedding');
+
+      /* If it's already an AppError, re-throw with more context */
+      if (appError instanceof HuggingFaceAPIError) {
+        throw appError;
+      }
+
+      logger.error('Error generating embedding:', err);
+
+      throw new EmbeddingGenerationError(
+        'Failed to generate embedding',
+        err instanceof Error ? err : undefined
       );
     }
   }
@@ -83,6 +101,16 @@ export class OpenAIService {
    * Array of embedding vectors
    */
   async generateEmbeddings(texts: string[]): Promise<(number | number[] | number[][])[]> {
+    if (!texts || texts.length === 0) {
+      throw new EmbeddingGenerationError('Texts array cannot be empty');
+    }
+
+    /* Validate all texts */
+    const emptyTexts = texts.filter((t) => !t || t.trim().length === 0);
+    if (emptyTexts.length > 0) {
+      throw new EmbeddingGenerationError(`${emptyTexts.length} text(s) in the array are empty`);
+    }
+
     try {
       const response = await this.#client.featureExtraction({
         model: this.#model,
@@ -90,11 +118,28 @@ export class OpenAIService {
         provider: this.#provider,
       });
 
+      if (!response || !Array.isArray(response)) {
+        throw new EmbeddingGenerationError('Invalid response format from Hugging Face API');
+      }
+
+      if (response.length !== texts.length) {
+        throw new EmbeddingGenerationError(
+          `Expected ${texts.length} embeddings, but received ${response.length}`
+        );
+      }
+
       return response.map((item) => item).map((item) => item);
-    } catch (error) {
-      logger.error('Error generating embeddings:', error);
-      throw new Error(
-        `Failed to generate embeddings: ${error instanceof Error ? error.message : 'Unknown error'}`
+    } catch (err) {
+      const appError = handleExternalAPIError('Hugging Face', err, 'generateEmbeddings');
+
+      if (appError instanceof HuggingFaceAPIError) {
+        throw appError;
+      }
+
+      logger.error('Error generating embeddings:', err);
+      throw new EmbeddingGenerationError(
+        'Failed to generate embeddings',
+        err instanceof Error ? err : undefined
       );
     }
   }
@@ -106,6 +151,10 @@ export class OpenAIService {
     messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
     systemPrompt?: string
   ): Promise<IteratorResult<ChatCompletionStreamOutput, any>> {
+    if (!messages || messages.length === 0) {
+      throw new HuggingFaceAPIError('Messages array cannot be empty');
+    }
+
     try {
       const chatMessages = systemPrompt
         ? [{ role: 'system' as const, content: systemPrompt }, ...messages]
@@ -121,14 +170,21 @@ export class OpenAIService {
 
       const content = chatResponse.next();
       if (!content) {
-        throw new Error('No completion returned from OpenAI');
+        throw new HuggingFaceAPIError('No completion returned from Hugging Face API');
       }
 
       return content;
-    } catch (error) {
-      logger.error('Error generating completion:', error);
-      throw new Error(
-        `Failed to generate completion: ${error instanceof Error ? error.message : 'Unknown error'}`
+    } catch (err) {
+      const appError = handleExternalAPIError('Hugging Face', err, 'generateCompletion');
+
+      if (appError instanceof HuggingFaceAPIError) {
+        throw appError;
+      }
+
+      logger.error('Error generating completion:', err);
+      throw new HuggingFaceAPIError(
+        'Failed to generate completion',
+        err instanceof Error ? err : undefined
       );
     }
   }
@@ -138,6 +194,14 @@ export class OpenAIService {
     question: string,
     context: string[]
   ): Promise<IteratorResult<ChatCompletionStreamOutput, any>> {
+    if (!question || question.trim().length === 0) {
+      throw new HuggingFaceAPIError('Question cannot be empty');
+    }
+
+    if (!context || context.length === 0) {
+      throw new HuggingFaceAPIError('Context array cannot be empty');
+    }
+
     const systemPrompt = `You are a helpful assistant that answers questions based on the provided context.
       Use only the information from the context to answer the question.
       If the context doesn't contain enough information to answer the question, say so.

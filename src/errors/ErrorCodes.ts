@@ -1,0 +1,57 @@
+/**
+ * Categories:
+ * - DOCUMENT_* - Document operations
+ * - SEARCH_* - Search operations
+ * - QA_* - Q&A operations
+ * - DATABASE_* - Database operations
+ * - EXTERNAL_* - External service errors
+ * - VALIDATION_* - Input validation
+ * - AUTH_* - Authentication/Authorization
+ */
+
+/**
+ * Centralized error codes
+ * Makes it easier to track and document all error scenarios
+ */
+
+export const ErrorCodes = {
+  /* Document errors */
+  DOCUMENT_NOT_FOUND: 'DOCUMENT_NOT_FOUND',
+  DOCUMENT_PROCESSING_FAILED: 'DOCUMENT_PROCESSING_FAILED',
+  UNSUPPORTED_FILE_TYPE: 'UNSUPPORTED_FILE_TYPE',
+  FILE_TOO_LARGE: 'FILE_TOO_LARGE',
+  EMPTY_DOCUMENT: 'EMPTY_DOCUMENT',
+  DOCUMENT_DELETE_FAILED: 'DOCUMENT_DELETE_FAILED',
+
+  /* Search errors */
+  SEARCH_FAILED: 'SEARCH_FAILED',
+  INVALID_SEARCH_QUERY: 'INVALID_SEARCH_QUERY',
+  EMBEDDING_GENERATION_FAILED: 'EMBEDDING_GENERATION_FAILED',
+  NO_SEARCH_RESULTS: 'NO_SEARCH_RESULTS',
+
+  /* Q&A errors */
+  QA_FAILED: 'QA_FAILED',
+  NO_RELEVANT_CONTEXT: 'NO_RELEVANT_CONTEXT',
+  ANSWER_GENERATION_FAILED: 'ANSWER_GENERATION_FAILED',
+
+  /* Database errors */
+  DATABASE_ERROR: 'DATABASE_ERROR',
+  DATABASE_CONNECTION_FAILED: 'DATABASE_CONNECTION_FAILED',
+  DATABASE_QUERY_FAILED: 'DATABASE_QUERY_FAILED',
+
+  /* External service errors */
+  EXTERNAL_SERVICE_ERROR: 'EXTERNAL_SERVICE_ERROR',
+  HUGGINGFACE_API_ERROR: 'HUGGINGFACE_API_ERROR',
+  REDIS_CONNECTION_FAILED: 'REDIS_CONNECTION_FAILED',
+
+  /* Validation errors */
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  INVALID_INPUT: 'INVALID_INPUT',
+  MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD',
+
+  // Generic errors
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
+} as const;
+
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
