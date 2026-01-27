@@ -15,6 +15,7 @@ import { logger } from './utils/logger.ts';
 import { typeDefs, documentResolver } from './graphql/document/index.ts';
 import { initializeDatabase, closeDatabase, AppDataSource } from './config/data-source.ts';
 import { IndexOptimizer } from './utils/index-optmizer.ts';
+import { formatGraphQLError } from './graphql/errors/formatError.ts';
 
 /* Main entrypoint */
 async function server(): Promise<void> {
@@ -104,6 +105,7 @@ async function server(): Promise<void> {
     const apolloServer = new ApolloServer({
       typeDefs,
       resolvers,
+      formatError: formatGraphQLError,
       plugins: [
         ApolloServerPluginDrainHttpServer({ httpServer }),
         ...(env.NODE_ENV !== 'production'
